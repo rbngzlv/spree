@@ -39,7 +39,7 @@ module Spree::Preferences
         # has been cleared from the cache
 
         # does it exist in the database?
-        if Spree::Preference.table_exists? && preference = Spree::Preference.find_by_key(key)
+        if Spree::Preference.connected? && Spree::Preference.table_exists? && preference = Spree::Preference.find_by_key(key)
           # it does exist, so let's put it back into the cache
           @cache.write(preference.key, preference.value)
 
@@ -86,7 +86,7 @@ module Spree::Preferences
     end
 
     def should_persist?
-      @persistence and Spree::Preference.table_exists?
+      @persistence and Spree::Preference.connected? and Spree::Preference.table_exists?
     end
 
   end

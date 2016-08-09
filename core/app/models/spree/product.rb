@@ -19,6 +19,7 @@
 #
 module Spree
   class Product < ActiveRecord::Base
+
     has_many :product_option_types, :dependent => :destroy
     has_many :option_types, :through => :product_option_types
     has_many :product_properties, :dependent => :destroy
@@ -38,7 +39,7 @@ module Spree
     has_many :variants,
       :class_name => 'Spree::Variant',
       :conditions => { :is_master => false, :deleted_at => nil },
-      :order => "#{::Spree::Variant.quoted_table_name}.position ASC"
+      :order => "spree_variants.position ASC"
 
     has_many :variants_including_master,
       :class_name => 'Spree::Variant',
@@ -78,7 +79,7 @@ module Spree
                     :shipping_category_id, :tax_category_id, :product_properties_attributes,
                     :variants_attributes, :taxon_ids, :option_type_ids, :cost_currency
 
-    attr_accessible :cost_price if Variant.table_exists? && Variant.column_names.include?('cost_price')
+    attr_accessible :cost_price
 
     accepts_nested_attributes_for :product_properties, :allow_destroy => true, :reject_if => lambda { |pp| pp[:property_name].blank? }
 
@@ -120,7 +121,7 @@ module Spree
     # adjusts the "on_hand" inventory level for the product up or down to match the given new_level
     def on_hand=(new_level)
       unless self.on_demand
-        raise 'cannot set on_hand of product with variants' if has_variants? && Spree::Config[:track_inventory_levels] 
+        raise 'cannot set on_hand of product with variants' if has_variants? && Spree::Config[:track_inventory_levels]
         master.on_hand = new_level
       end
     end
@@ -220,7 +221,8 @@ module Spree
     end
 
     def self.like_any(fields, values)
-      where_str = fields.map { |field| Array.new(values.size, "#{self.quoted_table_name}.#{field} #{LIKE} ?").join(' OR ') }.join(' OR ')
+      like = self.connection.adapter_name == 'PostgreSQL' ? 'ILIKE' : 'LIKE'
+      where_str = fields.map { |field| Array.new(values.size, "#{self.quoted_table_name}.#{field} #{like} ?").join(' OR ') }.join(' OR ')
       self.where([where_str, values.map { |value| "%#{value}%" } * fields.size].flatten)
     end
 
